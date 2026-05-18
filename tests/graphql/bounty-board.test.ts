@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createResolvers } from '../../src/graphql/resolvers.js';
 
+type ResolverDb = Parameters<typeof createResolvers>[0];
+
 function mockSelectChain(result: unknown[], terminal: 'where' | 'orderBy' = 'where') {
   const orderBy = vi.fn().mockResolvedValue(result);
   const where = terminal === 'where' ? vi.fn().mockResolvedValue(result) : vi.fn(() => ({ orderBy }));
@@ -31,7 +33,7 @@ describe('bountyBoard resolver', () => {
         .mockReturnValueOnce(totalBountyQuery.chain),
     };
 
-    const resolvers = createResolvers(db as never);
+    const resolvers = createResolvers(db as unknown as ResolverDb);
     const board = await resolvers.Query.bountyBoard();
 
     expect(board.availableTasks()).toEqual(availableTasks);
@@ -40,6 +42,8 @@ describe('bountyBoard resolver', () => {
     expect(board.domainStats).toEqual([]);
     expect(db.select).toHaveBeenCalledTimes(3);
     expect(availableQuery.orderBy).toHaveBeenCalledTimes(1);
+    expect(taskCountQuery.where).toHaveBeenCalledTimes(1);
+    expect(totalBountyQuery.where).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to zero aggregate values when no rows are returned', async () => {
@@ -54,7 +58,7 @@ describe('bountyBoard resolver', () => {
         .mockReturnValueOnce(totalBountyQuery.chain),
     };
 
-    const resolvers = createResolvers(db as never);
+    const resolvers = createResolvers(db as unknown as ResolverDb);
     const board = await resolvers.Query.bountyBoard();
 
     expect(board.availableTasks()).toEqual([]);
